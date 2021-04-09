@@ -1,0 +1,22 @@
+.meetings {
+  display: flex;
+  height: 35rem;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+
+  .md-list-item {
+    width: 55rem !important;
+  }
+
+  .transcription {
+    width: 55rem;
+    height: 25rem;
+    margin: 2rem;
+    border: 1px solid #ccc;
+    padding: 1rem;
+    overflow-y: auto;
+    letter-spacing: 0.25px;
+    line-height: 1.5rem;
+  }
+}
