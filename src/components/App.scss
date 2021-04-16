@@ -7,4 +7,16 @@
   justify-content: center;
   align-items: center;
   flex-direction: column;
+
+  .header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    Button {
+      width: 1.5rem !important;
+      height: 1.5rem !important;
+      margin-left: 1rem;
+    }
+  }
 }

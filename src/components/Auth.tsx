@@ -10,7 +10,6 @@ export default (props): JSX.Element => {
   const [token, updateToken] = useState("");
   const [disableAuth, updateDisableAuth] = useState(true);
   const [connectingToWebex, updateConnectingToWebex] = useState(false);
-  const [webexIsConnected, updateWebexIsConnected] = useState(false);
   const [meetings, updateMeetings] = useState({});
   const [sessionID, updateSessionID] = useState("");
 
@@ -35,8 +34,6 @@ export default (props): JSX.Element => {
     });
 
     try {
-      await webex.internal.device.register();
-      await webex.internal.mercury.connect();
       await webex.meetings.register();
       await webex.meetings.syncMeetings();
 
@@ -44,7 +41,6 @@ export default (props): JSX.Element => {
       updateSessionID(webex.sessionId)
       localStorage.setItem('token', token);
 
-      updateWebexIsConnected(true);
       updateDisableToken(true);
       updateDisableToken(true);
       updateTokenMessage({message: 'Authenticated!', type: 'success'})
@@ -59,7 +55,6 @@ export default (props): JSX.Element => {
       console.log(error)
       updateMeetings({});
       updateDisableToken(false);
-      updateWebexIsConnected(false);
       updateTokenMessage({message: 'Not Authenticated!', type: 'error'})
     }
 

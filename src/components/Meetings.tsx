@@ -1,64 +1,32 @@
 import React, {useState} from 'react';
-import {List, ListItem} from '@momentum-ui/react';
-import axios from 'axios';
-import { v4 as uuidv4 } from 'uuid';
-
+import {List, ListItem, Spinner} from '@momentum-ui/react';
+import Voicea from '../voicea';
 interface Props {
   meetings: any,
   token: string,
   sessionID: string
 }
-
 export default (props: Props): JSX.Element => {
   const {meetings, token, sessionID} = props;
   const [transcription, updateTranscription] = useState("");
-  let message = "";
-
+  const [isListening, updateListening] = useState(false);
+  
   const selectMeeting = async (event) => {
     event.preventDefault();
-
+    
     const meetingID = Object.values(meetings).find((meeting: any) => meeting.meetingInfo.meetingName === event.target.innerText).id;
     const meeting = meetings[meetingID];
-    const {deviceUrl, locusInfo: {info: {datachannelUrl}}} = meeting;
-    try {   
-      const response =  await axios({
-        method: 'post',
-        url: datachannelUrl,
-        data: {deviceUrl},
-        headers: {'Authorization': `Bearer ${token}`}
-      });
+    
+    updateListening(true);
+    
+    try {
+      const voicea = new Voicea(meeting);
       
-      const {data: {webSocketUrl}} = response;
-      const socket = new WebSocket(`${webSocketUrl}?outboundWireFormat=text&bufferStates=true&aliasHttpStatus=true`);
+      await voicea.openSocket(token, sessionID);
+      
+      updateListening(false);
 
-      	// Open the socket
-      socket.onopen = function(event) {
-        // Send an initial message
-        socket.send(JSON.stringify({
-          id: uuidv4(),
-          type: "authorization",
-          data: { "token": "Bearer " + token },
-          trackingId: `${sessionID}_${Date.now().toString()}`
-        }));
-
-        // Listen for messages
-        socket.onmessage = function(event) {
-          const messageData = JSON.parse(event.data);
-          
-          if(messageData.data?.voiceaPayload?.type === "transcript_final_result"){
-            message = message.concat(messageData.data?.voiceaPayload?.data);
-            console.log(message);
-            updateTranscription(message)
-          }
-          
-          socket.send(JSON.stringify({"messageId": messageData.id, "type": "ack"}));
-        };
-
-        // Listen for socket closes
-        socket.onclose = function(event) {
-          console.log('Client notified socket has closed', event);
-        };
-      };
+      voicea.getTranscription(updateTranscription.bind(this));
     } catch(error) {
       console.log(error.message);
     }
@@ -74,7 +42,13 @@ export default (props: Props): JSX.Element => {
       <List >
         {lists}
       </List>
-      <div className="transcription">{transcription}</div>
+      <div className="content">
+        {
+          isListening ? 
+          <Spinner /> :
+          <div className="transcription">{transcription}</div>
+        }
+      </div>
     </div>
   );
 }
