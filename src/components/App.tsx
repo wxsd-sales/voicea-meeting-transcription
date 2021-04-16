@@ -16,7 +16,7 @@ export default class App extends Component {
     return <div className="app">
       <div className="header">
         <h1>Webex/Voicea - Meeting Transcription</h1>
-        <Button circle color="blue" onClick={() => {window.open(this.githubPage, '_blank')}>
+        <Button circle color="blue" onClick={() => {window.open(this.githubPage, '_blank')}}>
           <Icon name="info_18" />  
         </Button >
       </div>
