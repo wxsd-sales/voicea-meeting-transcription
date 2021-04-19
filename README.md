@@ -52,11 +52,9 @@
 
 [![Product Name Screen Shot][product-screenshot]](https://wxsd-sales.github.io/WebexVoicea/)
 
-In this demo we tried to use third party library [Tensorflow](https://www.tensorflow.org/tfx) and one of it's models [bodyPix](https://blog.tensorflow.org/2019/11/updated-bodypix-2.html)
+In this demo we display the meeting transcription from a selected meeting.
 
 ### Built With
-
-In this demo we display the meeting transcription from a selected meeting.
 
 - [Voicea](https://github.com/voicera)
 - [Webex Browser SDK](https://github.com/webex/webex-js-sdk)
