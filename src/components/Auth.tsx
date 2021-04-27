@@ -3,6 +3,11 @@ import {Button, Input} from '@momentum-ui/react';
 import Meetings from './Meetings';
 import Webex from 'webex';
 
+function useForceUpdate(){
+  const [value, setValue] = useState(0); // integer state
+  return () => setValue(value => value + 1); // update the state to force render
+}
+
 export default (props): JSX.Element => {
   const [disableToken, updateDisableToken] = useState(false);
   const [tokenInputValue, updateTokenInputValue] = useState("");
@@ -37,18 +42,20 @@ export default (props): JSX.Element => {
       await webex.meetings.register();
       await webex.meetings.syncMeetings();
 
-      console.log(webex)
       updateSessionID(webex.sessionId)
       localStorage.setItem('token', token);
 
       updateDisableToken(true);
       updateDisableToken(true);
       updateTokenMessage({message: 'Authenticated!', type: 'success'})
-      
+
+      webex.meetings.on('meeting:added', () => {
+        updateMeetings({...webex.meetings.meetingCollection.meetings});
+      });
    
       setTimeout(() => {
         updateMeetings(webex.meetings.meetingCollection.meetings);
-      }, 1000 );
+      }, 1000);
 
     } catch (error) {
 
@@ -98,7 +105,7 @@ export default (props): JSX.Element => {
             {connectingToWebex ? "Initiating..." : "Authenticate"}
           </Button>
       </div>
-      <Meetings meetings={meetings} token={token} sessionID={sessionID}/>
+        <Meetings meetings={meetings} token={token} sessionID={sessionID}/>
     </div>
   );
 }

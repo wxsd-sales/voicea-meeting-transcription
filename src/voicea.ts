@@ -51,34 +51,69 @@ export default class Voicea {
 
   replaceLastOccurrence(str: string, msg: string, newMessage:string): string {
     const index = str.toLowerCase().lastIndexOf(msg.toLowerCase());
-    const pattern = new RegExp(msg, 'i');
+    // const pattern = new RegExp(msg, 'i');
 
-    return str.slice(0, index) + str.slice(index).replace(pattern, newMessage);
+    return str.slice(0, index) + str.slice(index).replace(msg, newMessage);
   }
 
-  getTranscription(callback: (message:string)=>void): void {
+  getCurrentSpeaker(meeting, csis): any {
+    return Object.values(meeting.members.membersCollection.members).find((member: any) => {
+      const memberCSIs = member.participant.status.csis;
+      let selfIsSpeaking = false;
+
+      for(const csi of csis) {
+        if(memberCSIs.includes(csi)) {
+          selfIsSpeaking = true;
+          break;
+        }
+      }
+
+      return selfIsSpeaking;
+    });
+  }
+
+  getTranscription(meeting: any, callback: (message:string)=>void): void {
     let message = "";
     let currentMessage = "";
     let previousMessage = "";
+    let previousSpeaker;
+    let currentSpeaker;
 
     this.socket.onmessage = (event) => {
       const messageData = JSON.parse(event.data);
+      const csis = messageData.data?.voiceaPayload?.csis || [];
+      currentSpeaker = this.getCurrentSpeaker(meeting, csis);
       currentMessage = messageData.data?.voiceaPayload?.data || "";
-      
+
       if(messageData.data?.voiceaPayload?.type === "transcript_interim_results") {
         if(previousMessage === "") {
-          message = message.concat(currentMessage);
+          if(previousSpeaker?.name !== currentSpeaker.name) { 
+            message = message.concat(`\n${currentMessage}`);
+          } else {
+            message = message.concat(currentMessage);
+          }
         } else{
           message = this.replaceLastOccurrence(message, previousMessage, currentMessage);
         }
         previousMessage = currentMessage;
-      } else {
+      } else if (messageData.data?.voiceaPayload?.type === "transcript_final_result") {
         message = this.replaceLastOccurrence(message, previousMessage, '');
+        
+        if(currentSpeaker.name !== previousSpeaker?.name) {
+          if(previousSpeaker) {
+            currentMessage = `\n${currentSpeaker.name}: ${currentMessage}`;
+          } else {
+            currentMessage = `${currentSpeaker.name}: ${currentMessage}`;
+          }
+        }
+
         message = message.concat(currentMessage);
         previousMessage = "";
+        previousSpeaker = currentSpeaker;
       }
 
     this.socket.send(JSON.stringify({"messageId": messageData.id, "type": "ack"}));
+
     callback(message);
     };
   }

@@ -26,7 +26,7 @@ export default (props: Props): JSX.Element => {
       
       updateListening(false);
 
-      voicea.getTranscription(updateTranscription.bind(this));
+      voicea.getTranscription(meeting, updateTranscription.bind(this));
     } catch(error) {
       console.log(error.message);
     }
