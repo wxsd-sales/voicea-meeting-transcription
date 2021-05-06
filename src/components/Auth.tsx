@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 import Webex from 'webex';
+import moment from 'moment';
 import Meetings from './Meetings';
-
 interface Props {
   showApp: (show: boolean) => void
 }
@@ -26,6 +26,7 @@ export default class Auth extends Component {
       config: {
         credentials: {
           client_id: 'Ce2ceb5eba6c370acd6ba9c5f003290e39649dbf0001e521abceefb0d1b942dda',
+          // redirect_uri: 'https://webexvoicea.ngrok.io',
           redirect_uri: 'https://wxsd-sales.github.io/WebexVoicea/',
           scope: 'spark:all spark:kms'
         }
@@ -33,17 +34,28 @@ export default class Auth extends Component {
     }); 
   }
 
+  startListeningToMeetings(): void {
+    this.webex.meetings.on('meeting:added', () => {
+      this.setState({
+        meetings: {...this.webex.meetings.meetingCollection.meetings}
+      });
+    });
+
+    this.webex.meetings.on('meeting:removed', () => {
+      this.setState({
+        meetings: {...this.webex.meetings.meetingCollection.meetings}
+      });
+    });
+
+  }
+
   async setupMeetingPlugin(): Promise<void> {
     try {
       await this.webex.meetings.register();
       await this.webex.meetings.syncMeetings();
   
-      this.webex.meetings.on('meetings:added', () => {
-        this.setState({
-          meetings: {...this.webex.meetings.meetingCollection.meetings}
-        });
-      });
-  
+      this.startListeningToMeetings();
+
       setTimeout(() => {
         this.setState({
           webexIsConnected: true,
@@ -62,16 +74,27 @@ export default class Auth extends Component {
 
   async validateToken(): Promise<void> {
     if(localStorage.getItem('token')) {
-      const token = localStorage.getItem('token').replace('Bearer ', '');
-      this.webex = new Webex({
-        credentials: token
-      });
-      await this.setupMeetingPlugin();
+      if((moment(localStorage.getItem('expires_in')).diff(moment.utc()) < 0)) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('expires_in');
+        this.webex.authorization.initiateImplicitGrant();
+      } else {
+        const token = localStorage.getItem('token').replace('Bearer ', '');
+        this.webex = new Webex({
+          credentials: token
+        });
+  
+        await this.setupMeetingPlugin();
+      }
     } else if (this.webex.credentials.supertoken) {
-      localStorage.setItem('token', this.webex.credentials.supertoken);
+      const {access_token, expires_in} = this.webex.credentials.supertoken;
+
+      localStorage.setItem('token', access_token);
+      localStorage.setItem('expires_in', expires_in);
+
       await this.setupMeetingPlugin();
     } else {
-      await this.webex.authorization.initiateImplicitGrant();
+      this.webex.authorization.initiateImplicitGrant();
     }
   }
   
@@ -87,7 +110,7 @@ export default class Auth extends Component {
 
   render(): JSX.Element {
     const {webexIsConnected, meetings, token, sessionID} = this.state;
-    console.log(this.state)
+
     return (
       <div className="auth">
         {webexIsConnected && 

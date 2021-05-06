@@ -53,6 +53,7 @@
   "dependencies": {
     "@momentum-ui/react": "^23.21.9",
     "axios": "^0.21.1",
+    "moment": "^2.29.1",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "redux": "^4.0.5",
