@@ -1,111 +1,98 @@
-import React, {useState, useEffect} from 'react';
-import {Button, Input} from '@momentum-ui/react';
-import Meetings from './Meetings';
+import React, {Component} from 'react';
 import Webex from 'webex';
+import Meetings from './Meetings';
 
-function useForceUpdate(){
-  const [value, setValue] = useState(0); // integer state
-  return () => setValue(value => value + 1); // update the state to force render
+interface Props {
+  showApp: (show: boolean) => void
 }
+export default class Auth extends Component {
+  webex: any;
+  token: string;
+  state: any;
+  props: any;
 
-export default (props): JSX.Element => {
-  const [disableToken, updateDisableToken] = useState(false);
-  const [tokenInputValue, updateTokenInputValue] = useState("");
-  const [tokenMessage, updateTokenMessage] = useState({});
-  const [token, updateToken] = useState("");
-  const [disableAuth, updateDisableAuth] = useState(true);
-  const [connectingToWebex, updateConnectingToWebex] = useState(false);
-  const [meetings, updateMeetings] = useState({});
-  const [sessionID, updateSessionID] = useState("");
+  constructor(props: Props) {
+    super(props);
 
-  useEffect(() => {
-    const newToken = localStorage.getItem('token');
+    this.props = props;
+    this.token = "";
+    this.state = {
+      webexIsConnected: false,
+      meetings: {},
+      sessionID: '',
+      token: ''
+    };
+    this.webex = new Webex({
+      config: {
+        credentials: {
+          client_id: 'Ce2ceb5eba6c370acd6ba9c5f003290e39649dbf0001e521abceefb0d1b942dda',
+          redirect_uri: 'https://webexvoicea.ngrok.io',
+          scope: 'spark:all spark:kms'
+        }
+      }
+    }); 
+  }
 
-    if(newToken) {
-      updateTokenInputValue(newToken);
-      updateToken(newToken);
-      updateDisableAuth(false);
-    }
-  }, []);
-
-  const initWebex = async (event) => {
-    event.preventDefault();
-
-    updateConnectingToWebex(true);
-    updateDisableAuth(true);
-    
-    const webex = new Webex({
-      credentials: token
-    });
-
+  async setupMeetingPlugin(): Promise<void> {
     try {
-      await webex.meetings.register();
-      await webex.meetings.syncMeetings();
-
-      updateSessionID(webex.sessionId)
-      localStorage.setItem('token', token);
-
-      updateDisableToken(true);
-      updateDisableToken(true);
-      updateTokenMessage({message: 'Authenticated!', type: 'success'})
-
-      webex.meetings.on('meeting:added', () => {
-        updateMeetings({...webex.meetings.meetingCollection.meetings});
+      await this.webex.meetings.register();
+      await this.webex.meetings.syncMeetings();
+  
+      this.webex.meetings.on('meetings:added', () => {
+        this.setState({
+          meetings: {...this.webex.meetings.meetingCollection.meetings}
+        });
       });
-   
+  
       setTimeout(() => {
-        updateMeetings(webex.meetings.meetingCollection.meetings);
+        this.setState({
+          webexIsConnected: true,
+          sessionID: this.webex.sessionId,
+          token: localStorage.getItem('token').replace('Bearer ', ''),
+          meetings: this.webex.meetings.meetingCollection.meetings
+        });
+
+        this.props.showApp(true);
       }, 1000);
 
     } catch (error) {
-
-      console.log(error)
-      updateMeetings({});
-      updateDisableToken(false);
-      updateTokenMessage({message: 'Not Authenticated!', type: 'error'})
-    }
-
-    updateConnectingToWebex(false);
-  }
-
-  const handleTokenChange = (event) => {
-    const token = event.target.value;
-
-    if(token === "") {
-      updateDisableAuth(true);
-      updateTokenMessage({message: 'Token is required!', type: 'error'});
-    }
-    else {
-      updateDisableAuth(false);
-      updateTokenMessage({});
-      updateToken(token);
+      console.log('had some trouble with setting up the webex meeting plugin', error);
     }
   }
 
-  return (
-    <div className="auth">
-        <div className="tokenSection">
-          <div className="tokenInput">
-              <Input 
-                name="Token"
-                label="Token"
-                htmlId="Token"
-                inputSize="small-5"
-                disabled={disableToken}
-                value={tokenInputValue}
-                messageArr={[tokenMessage]}
-                onChange={(event) => {handleTokenChange(event)}}
-                placeholder="Your Access Token" />
-          </div>
-          <Button 
-            disabled={disableAuth}
-            onClick={async (event) => {await initWebex(event)}}
-            color="green"
-          >
-            {connectingToWebex ? "Initiating..." : "Authenticate"}
-          </Button>
-      </div>
-        <Meetings meetings={meetings} token={token} sessionID={sessionID}/>
-    </div>
-  );
+  async validateToken(): Promise<void> {
+    if(localStorage.getItem('token')) {
+      const token = localStorage.getItem('token').replace('Bearer ', '');
+      this.webex = new Webex({
+        credentials: token
+      });
+      await this.setupMeetingPlugin();
+    } else if (this.webex.credentials.supertoken) {
+      localStorage.setItem('token', this.webex.credentials.supertoken);
+      await this.setupMeetingPlugin();
+    } else {
+      await this.webex.authorization.initiateImplicitGrant();
+    }
+  }
+  
+  async requestToken(): Promise<void> {
+    this.webex.on('ready', async() => {
+      await this.validateToken();
+    })
+  }
+
+  async componentDidMount(): Promise<void> {
+    await this.requestToken();
+  }
+
+  render(): JSX.Element {
+    const {webexIsConnected, meetings, token, sessionID} = this.state;
+    console.log(this.state)
+    return (
+      <div className="auth">
+        {webexIsConnected && 
+          <Meetings meetings={meetings} token={token} sessionID={sessionID} />
+        }
+      </div>);
+  } 
 }
