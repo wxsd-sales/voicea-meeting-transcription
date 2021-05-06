@@ -12,7 +12,7 @@ export default class App extends Component {
     this.state = {
       showApp: false
     }
-    this.githubPage = 'https://github.com/WXSD-Sales/WebexVoicea';
+    this.githubPage = 'https://github.com/WXSD-Sales/WebexVoicea/';
   }
 
   toggleShowApp(flag: boolean): void {

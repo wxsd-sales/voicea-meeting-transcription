@@ -26,7 +26,7 @@ export default class Auth extends Component {
       config: {
         credentials: {
           client_id: 'Ce2ceb5eba6c370acd6ba9c5f003290e39649dbf0001e521abceefb0d1b942dda',
-          redirect_uri: 'https://webexvoicea.ngrok.io',
+          redirect_uri: 'https://wxsd-sales.github.io/WebexVoicea/',
           scope: 'spark:all spark:kms'
         }
       }
