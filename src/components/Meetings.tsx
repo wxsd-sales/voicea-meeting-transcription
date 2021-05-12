@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {List, ListItem, Spinner} from '@momentum-ui/react';
 import Voicea from '../voicea';
 interface Props {
@@ -10,7 +10,16 @@ export default (props: Props): JSX.Element => {
   const {meetings, token, sessionID} = props;
   const [transcription, updateTranscription] = useState("");
   const [isListening, updateListening] = useState(false);
-  
+  const endRef = useRef(null);
+
+  const scrollToBottom = () => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [transcription]);
+
   const selectMeeting = async (event) => {
     event.preventDefault();
     
@@ -46,7 +55,9 @@ export default (props: Props): JSX.Element => {
         {
           isListening ? 
           <Spinner /> :
-          <div className="transcription">{transcription}</div>
+          <div className="transcription">{transcription}
+            <div ref={endRef} />
+          </div>
         }
       </div>
     </div>

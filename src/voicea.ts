@@ -88,7 +88,7 @@ export default class Voicea {
       if(messageData.data?.voiceaPayload?.type === "transcript_interim_results") {
         if(previousMessage === "") {
           if(previousSpeaker?.name !== currentSpeaker.name) { 
-            message = message.concat(`\n${currentMessage}`);
+            message = message.concat(`\n\n${currentSpeaker.name}: ${currentMessage}`);
           } else {
             message = message.concat(currentMessage);
           }
@@ -97,16 +97,18 @@ export default class Voicea {
         }
         previousMessage = currentMessage;
       } else if (messageData.data?.voiceaPayload?.type === "transcript_final_result") {
-        message = this.replaceLastOccurrence(message, previousMessage, '');
-        
         if(currentSpeaker.name !== previousSpeaker?.name) {
+          
           if(previousSpeaker) {
-            currentMessage = `\n${currentSpeaker.name}: ${currentMessage}`;
+            message = this.replaceLastOccurrence(message, `\n\n${currentSpeaker.name}: `, '');
+            currentMessage = `\n\n${currentSpeaker.name}: ${currentMessage}`;
           } else {
+            message = this.replaceLastOccurrence(message, `${currentSpeaker.name}: `, '');
             currentMessage = `${currentSpeaker.name}: ${currentMessage}`;
           }
         }
 
+        message = this.replaceLastOccurrence(message, previousMessage, '');
         message = message.concat(currentMessage);
         previousMessage = "";
         previousSpeaker = currentSpeaker;
