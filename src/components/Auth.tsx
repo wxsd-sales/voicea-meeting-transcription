@@ -60,7 +60,7 @@ export default class Auth extends Component {
         this.setState({
           webexIsConnected: true,
           sessionID: this.webex.sessionId,
-          token: localStorage.getItem('token').replace('Bearer ', ''),
+          token: localStorage.getItem('access_token').replace('Bearer ', ''),
           meetings: this.webex.meetings.meetingCollection.meetings
         });
 
@@ -73,13 +73,13 @@ export default class Auth extends Component {
   }
 
   async validateToken(): Promise<void> {
-    if(localStorage.getItem('token')) {
+    if(localStorage.getItem('access_token')) {
       if((moment(localStorage.getItem('expires_in')).diff(moment.utc()) < 0)) {
-        localStorage.removeItem('token');
+        localStorage.removeItem('access_token');
         localStorage.removeItem('expires_in');
         this.webex.authorization.initiateImplicitGrant();
       } else {
-        const token = localStorage.getItem('token').replace('Bearer ', '');
+        const token = localStorage.getItem('access_token').replace('Bearer ', '');
         this.webex = new Webex({
           credentials: token
         });
@@ -89,7 +89,7 @@ export default class Auth extends Component {
     } else if (this.webex.credentials.supertoken) {
       const {access_token, expires_in} = this.webex.credentials.supertoken;
 
-      localStorage.setItem('token', access_token);
+      localStorage.setItem('access_token', access_token);
       localStorage.setItem('expires_in', expires_in);
 
       await this.setupMeetingPlugin();
