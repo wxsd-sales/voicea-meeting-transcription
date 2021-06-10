@@ -60,7 +60,7 @@ export default class Auth extends Component {
         this.setState({
           webexIsConnected: true,
           sessionID: this.webex.sessionId,
-          token: localStorage.getItem('access_token').replace('Bearer ', ''),
+          token: localStorage.getItem('webex_token').replace('Bearer ', ''),
           meetings: this.webex.meetings.meetingCollection.meetings
         });
 
@@ -72,14 +72,19 @@ export default class Auth extends Component {
     }
   }
 
+
   async validateToken(): Promise<void> {
-    if(localStorage.getItem('access_token')) {
-      if((moment(localStorage.getItem('expires_in')).diff(moment.utc()) < 0)) {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('expires_in');
+    localStorage.removeItem('token');
+    localStorage.removeItem('expires_in');
+    localStorage.removeItem('access_token');
+
+    if(localStorage.getItem('webex_token')) {
+      if((moment(localStorage.getItem('expiration_date')).diff(moment.utc()) < 0)) {
+        localStorage.removeItem('webex_token');
+        localStorage.removeItem('expiration_date');
         this.webex.authorization.initiateImplicitGrant();
       } else {
-        const token = localStorage.getItem('access_token').replace('Bearer ', '');
+        const token = localStorage.getItem('webex_token').replace('Bearer ', '');
         this.webex = new Webex({
           credentials: token
         });
@@ -88,9 +93,11 @@ export default class Auth extends Component {
       }
     } else if (this.webex.credentials.supertoken) {
       const {access_token, expires_in} = this.webex.credentials.supertoken;
+      const startDate = moment.utc();
+      const expirationDate = startDate.add(Number(expires_in), 'seconds');
 
-      localStorage.setItem('access_token', access_token);
-      localStorage.setItem('expires_in', expires_in);
+      localStorage.setItem('webex_token', access_token);
+      localStorage.setItem('expiration_date', expirationDate.format());
 
       await this.setupMeetingPlugin();
     } else {
